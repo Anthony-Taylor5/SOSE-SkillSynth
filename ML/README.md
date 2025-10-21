@@ -10,7 +10,18 @@ you will need to pull models but ensure you have enough space in memory for thei
 ollama pull mistral:latest
 ollama pull mxbai-embed-large
 
-now just run the python file:
+
+# Install dependencies if not done
+pip install fastapi uvicorn pinecone python-dotenv requests
+
+start the api server with: 
+if in ML folder
+python -m uvicorn main_api:app --host 0.0.0.0 --port 8000
+or if in root 
+python -m uvicorn ml.main_api:app --host 0.0.0.0 --port 8000
+
+
+
+
 
 if you need to access endpoints: 
-/tbd
