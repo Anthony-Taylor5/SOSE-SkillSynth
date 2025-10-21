@@ -2,6 +2,8 @@ package com.skillsynth;
 
 import org.springframework.stereotype.Service;
 import org.springframework.beans.factory.annotation.Autowired;
+
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -90,6 +92,11 @@ public class SkillSynthService {
         }
         return false;
     }
+
+    public Optional<AppUser> getUserByIdWithSkills(Long id) {
+        return userRepository.findByIdWithSkills(id);
+    }
+
 
     // Creates a new Skill
     public Skill createSkill(String skillName, String description) {
@@ -193,5 +200,13 @@ public class SkillSynthService {
         }
         return false;
     }
+
+    public AppUser createUser(String username, Integer level, List<Skill> allSkills) {
+        if (level == null) level = 1;           // default level
+        if (allSkills == null) allSkills = new ArrayList<>();
+        AppUser user = new AppUser(username, level, allSkills);
+        return userRepository.save(user);
+    }
+
 
 }

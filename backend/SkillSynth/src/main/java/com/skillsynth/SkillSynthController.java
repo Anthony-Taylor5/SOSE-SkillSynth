@@ -6,8 +6,10 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.Optional;
 
+@CrossOrigin(origins = "http://localhost:5173/")
 @RestController
 @RequestMapping("/api")
+
 public class SkillSynthController {
 
     @Autowired
@@ -23,6 +25,13 @@ public class SkillSynthController {
     @GetMapping("/users/{id}")
     public ResponseEntity<AppUser> getUserById(@PathVariable Long id) {
         return skillSynthService.getUserById(id)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
+    }
+
+    @GetMapping("/users/{id}/with-skills")
+    public ResponseEntity<AppUser> getUserByIdWithSkills(@PathVariable Long id) {
+        return skillSynthService.getUserByIdWithSkills(id)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }

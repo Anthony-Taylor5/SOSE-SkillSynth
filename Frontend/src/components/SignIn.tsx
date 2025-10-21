@@ -1,11 +1,21 @@
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { createUser } from "./api";
 
 export default function SignIn() {
   const navigate = useNavigate();
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const [username, setUsername] = useState("");
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    navigate("/dashboard");
+    try {
+      await createUser({ username, level: 1 }); // level hardcoded
+      navigate("/dashboard"); // redirect after success
+    } catch (err) {
+      console.error("Signup failed:", err);
+      alert("Failed to create user");
+    }
   };
+
 
   return (
     <div className="relative min-h-screen flex items-center justify-center overflow-visible">
@@ -36,15 +46,17 @@ export default function SignIn() {
               >
                 Username
               </label>
-              <input
-                id="username"
-                name="username"
-                type="text"
-                autoComplete="username"
-                placeholder="your name"
-                className="w-full rounded-xl bg-black/25 text-white placeholder-white/45 border border-white/15 focus:outline-none focus:ring-2 focus:ring-cyan-300/70 focus:border-cyan-300/70 px-4 py-3 font-['Rajdhani'] tracking-wide shadow-[inset_0_0_0_999px_rgba(255,255,255,0.02)]"
-                required
-              />
+<input
+  id="username"
+  name="username"
+  type="text"
+  autoComplete="username"
+  placeholder="your name"
+  value={username}                  // connects input to state
+  onChange={(e) => setUsername(e.target.value)}  // updates state on type
+  required
+/>
+
             </div>
 
             {/* Password */}
