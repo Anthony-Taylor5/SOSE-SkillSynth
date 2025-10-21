@@ -15,9 +15,9 @@ pip install fastapi uvicorn pinecone python-dotenv requests
 
 start the api server with: 
 if in ML folder
-python -m uvicorn main_api:app --host 0.0.0.0 --port 8000
+python -m uvicorn main_api:app --host localhost --port 8000
 or if in root 
-python -m uvicorn ml.main_api:app --host 0.0.0.0 --port 8000
+python -m uvicorn ml.main_api:app --host localhost --port 8000
 
 
 if you need to access endpoints: 
