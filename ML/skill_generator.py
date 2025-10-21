@@ -166,13 +166,20 @@ class skill_generator:
         }
         relevant_skills = []
         for skill in main_skills:
-            relevant_skills.append(self.grab_relevant_skills(skill))
+            try:
+                skill_results = self.grab_relevant_skills(skill)
+                relevant_skills.append(skill_results)
+                print(f"Found {len(skill_results)} relevant skills for {skill}")
+            except Exception as e:
+                print(f"Warning: Could not get relevant skills for {skill}: {e}")
+                relevant_skills.append([])  # Add empty list for missing skills
+        
         relevant_skills_names = set()
         for arr in relevant_skills:
             for skill in arr:
                 relevant_skills_names.add(skill.get("skill"))
         relevant_skills_names = list(relevant_skills_names)
-        print(relevant_skills_names)
+        print(f"All relevant skills: {relevant_skills_names}")
         
         make_project["prompt"] = f"""
                 You are an expert computer science educator and project mentor. 

@@ -4,6 +4,7 @@ from pydantic import BaseModel
 from typing import Dict, List, Optional, Any
 from skill_generator import skill_generator
 import time
+import json
 
 # Initialize API + Generator
 app = FastAPI(title="SkillSynth ML API", version="1.0")
@@ -141,8 +142,16 @@ def grab_relevant_skills(req: RelevantSkillsRequest):
 def get_project(req: ProjectRequest):
     try:
         project = generator.get_project(req.main_skills, req.time_availability, req.experience_level)
+
+       
+        if isinstance(project, str):
+            project = json.loads(project)
+
         return {"project": project}
+
     except Exception as e:
+        print(f"Error in get_project: {e}")
+        import traceback; traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post(
