@@ -2,34 +2,106 @@ package com.skillsynth;
 
 import jakarta.persistence.*;
 
-import java.util.List;
-
 @Entity
+@Table(name = "skills")
 public class Skill {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private String skillName;
-    private String description;
+    @Column(nullable = false, unique = true)
+    private String name;
 
-    // No recursive List<Skill> field here
+    @Column(nullable = false)
+    private String category;
 
-    public Skill() {}
+    @Column(nullable = false)
+    private int level;
 
-    public Skill(String skillName, String description) {
-        this.skillName = skillName;
-        this.description = description;
+    @Column(nullable = false)
+    private int xp;
+
+    // === Constructors ===
+    public Skill() {
+        this.name = "undefined";
+        this.category = "General";
+        this.level = 1;
+        this.xp = 0;
     }
 
-    // Getters and Setters
-    public Long getId() { return id; }
-    public void setId(Long id) { this.id = id; }
+    public Skill(String name, String category) {
+        this.name = name;
+        this.category = category;
+        this.level = 1;
+        this.xp = 0;
+    }
 
-    public String getSkillName() { return skillName; }
-    public void setSkillName(String skillName) { this.skillName = skillName; }
+    public Skill(String name, int level) {
+        this.name = name;
+        this.level = level;
+        this.xp = 0;
+        this.category = "General";
+    }
 
-    public String getDescription() { return description; }
-    public void setDescription(String description) { this.description = description; }
+    // === Getters and Setters ===
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public String getCategory() {
+        return category;
+    }
+
+    public void setCategory(String category) {
+        this.category = category;
+    }
+
+    public int getLevel() {
+        return level;
+    }
+
+    public void setLevel(int level) {
+        this.level = level;
+    }
+
+    public int getXp() {
+        return xp;
+    }
+
+    public void setXp(int xp) {
+        this.xp = xp;
+    }
+
+    // === Helper Methods ===
+    public void addXP(int xp) {
+        this.xp += xp;
+        updateLevel();
+    }
+
+    private void updateLevel() {
+        if (level < 5 && xp >= xpToNextLevel()) {
+            level++;
+        }
+    }
+
+    private int xpToNextLevel() {
+        return 100 * level;
+    }
+
+    public float getProgressPercentage() {
+        return (float) level / 5 * 100f;
+    }
 }

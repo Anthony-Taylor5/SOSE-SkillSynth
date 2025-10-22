@@ -37,6 +37,13 @@ public class User{
         skills.add(skill);
         totalXP += skill.getXP();
     }
+    public String getName(){
+        return name;
+    }
+    public ArrayList<Skill>() getAllSkills(){
+        return skills;
+    }
+    
 
     public void removeSkill(Skill skill)
     {
@@ -50,6 +57,7 @@ public class User{
             return;
         }
     }
+
 
     public void addXP(int xp, Skill skill)
     {

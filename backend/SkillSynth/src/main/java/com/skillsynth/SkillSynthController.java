@@ -12,12 +12,11 @@ import java.util.ArrayList;
 @CrossOrigin(origins = "http://localhost:5173/")
 @RestController
 @RequestMapping("/api")
-
 public class SkillSynthController {
 
     @Autowired
     private SkillSynthService skillSynthService;
-    
+
     @Autowired
     private MLService mlService;
 
@@ -66,32 +65,17 @@ public class SkillSynthController {
 
     @PostMapping("/users")
     public AppUser createUser(@RequestBody AppUser user) {
-        AppUser createdUser = skillSynthService.createUser(user.getUsername(), user.getLevel(), user.getAllSkills());
-        
-        // Upload user to ML service for teammate matching
-        try {
-            uploadUserToMLService(createdUser);
-        } catch (Exception e) {
-            // Log error but don't fail user creation
-            System.err.println("Failed to upload user to ML service: " + e.getMessage());
-        }
-        
-        return createdUser;
+        // Correct argument order and method names
+        return skillSynthService.createUser(
+                user.getUsername(),
+                user.getLevel(),
+                user.getAllSkills()
+        );
     }
 
     @PutMapping("/users")
     public AppUser updateUser(@RequestBody AppUser user) {
-        AppUser updatedUser = skillSynthService.updateUser(user);
-        
-        // Re-upload user to ML service with updated information
-        try {
-            uploadUserToMLService(updatedUser);
-        } catch (Exception e) {
-            // Log error but don't fail user update
-            System.err.println("Failed to update user in ML service: " + e.getMessage());
-        }
-        
-        return updatedUser;
+        return skillSynthService.updateUser(user);
     }
 
     @DeleteMapping("/users/{id}")
@@ -143,7 +127,7 @@ public class SkillSynthController {
 
     @PostMapping("/skills")
     public Skill createSkill(@RequestBody Skill skill) {
-        return skillSynthService.createSkill(skill.getSkillName(), skill.getDescription());
+        return skillSynthService.createSkill(skill.getName(), skill.getCategory());
     }
 
     @PutMapping("/skills")
@@ -206,54 +190,67 @@ public class SkillSynthController {
     }
 
     @PostMapping("/projects/ai-generate")
-    public ResponseEntity<Map<String, Object>> generateAIGeneratedProject(@RequestBody Map<String, Object> request) {
+    public ResponseEntity<Project> generateAIProject(@RequestBody Map<String, Object> request) {
         try {
             @SuppressWarnings("unchecked")
-            List<String> mainSkills = (List<String>) request.get("main_skills");
+            List<Map<String, Object>> skillMaps = (List<Map<String, Object>>) request.get("skills");
+            List<Skill> skills = new ArrayList<>();
+
+            for (Map<String, Object> skillMap : skillMaps) {
+                String skillName = (String) skillMap.get("skillName");
+                String category = (String) skillMap.getOrDefault("category", "General");
+                Skill skill = skillSynthService.getSkillByName(skillName)
+                        .orElseGet(() -> skillSynthService.createSkill(skillName, category));
+                skills.add(skill);
+            }
+
             int timeAvailability = (Integer) request.get("time_availability");
             int experienceLevel = (Integer) request.get("experience_level");
-            
-            // Generate project using ML service
-            Map<String, Object> aiProject = mlService.generateProject(mainSkills, timeAvailability, experienceLevel);
-            
+
+            Project aiProject = skillSynthService.createAIProject(
+                    "AI Suggested Project",
+                    skills,
+                    timeAvailability,
+                    experienceLevel
+            );
+
             return ResponseEntity.ok(aiProject);
+
         } catch (Exception e) {
-            Map<String, Object> errorResponse = new HashMap<>();
-            errorResponse.put("error", "Failed to generate AI project: " + e.getMessage());
-            return ResponseEntity.status(500).body(errorResponse);
+            System.err.println("⚠️ Failed to generate AI project: " + e.getMessage());
+            return ResponseEntity.status(500).build();
         }
     }
 
     @PostMapping("/projects/ai-generate-and-save")
-    public ResponseEntity<Project> generateAndSaveAIGeneratedProject(@RequestBody Map<String, Object> request) {
+    public ResponseEntity<Project> generateAndSaveAIProject(@RequestBody Map<String, Object> request) {
         try {
             @SuppressWarnings("unchecked")
-            List<String> mainSkills = (List<String>) request.get("main_skills");
+            List<Map<String, Object>> skillMaps = (List<Map<String, Object>>) request.get("skills");
+            List<Skill> skills = new ArrayList<>();
+
+            for (Map<String, Object> skillMap : skillMaps) {
+                String skillName = (String) skillMap.get("skillName");
+                String category = (String) skillMap.getOrDefault("category", "General");
+                Skill skill = skillSynthService.getSkillByName(skillName)
+                        .orElseGet(() -> skillSynthService.createSkill(skillName, category));
+                skills.add(skill);
+            }
+
             int timeAvailability = (Integer) request.get("time_availability");
             int experienceLevel = (Integer) request.get("experience_level");
-            
-            // Generate project using ML service
-            Map<String, Object> aiProjectResponse = mlService.generateProject(mainSkills, timeAvailability, experienceLevel);
-            
-            // Extract project data from AI response
-            @SuppressWarnings("unchecked")
-            Map<String, Object> projectData = (Map<String, Object>) aiProjectResponse.get("project");
-            
-            // Convert AI project to our Project entity
-            Project project = convertAIToProject(projectData, mainSkills, timeAvailability, experienceLevel);
-            
-            // Save to database
-            Project savedProject = skillSynthService.createProject(
-                    project.getName(),
-                    project.getRecommendedSkills(),
-                    project.getDateRange(),
-                    project.getProjectDescription(),
-                    project.getExperienceLevel()
+
+            Project aiProject = skillSynthService.createAIProject(
+                    "AI Suggested Project",
+                    skills,
+                    timeAvailability,
+                    experienceLevel
             );
-            
-            return ResponseEntity.ok(savedProject);
+
+            return ResponseEntity.ok(aiProject);
+
         } catch (Exception e) {
-            System.err.println("Failed to generate and save AI project: " + e.getMessage());
+            System.err.println("⚠️ Failed to generate and save AI project: " + e.getMessage());
             return ResponseEntity.status(500).build();
         }
     }
@@ -283,7 +280,7 @@ public class SkillSynthController {
         List<String> mainSkills = (List<String>) request.get("main_skills");
         int timeAvailability = (Integer) request.get("time_availability");
         int experienceLevel = (Integer) request.get("experience_level");
-        
+
         return mlService.generateProject(mainSkills, timeAvailability, experienceLevel);
     }
 
@@ -302,85 +299,7 @@ public class SkillSynthController {
         @SuppressWarnings("unchecked")
         Map<String, Object> user = (Map<String, Object>) request.get("user");
         int topK = (Integer) request.getOrDefault("top_k", 15);
-        
+
         return mlService.findTeammates(user, topK);
-    }
-
-    // -------------------- HELPER METHODS --------------------
-
-    private void uploadUserToMLService(AppUser user) {
-        // Convert AppUser to ML service format
-        Map<String, Object> mlUser = new HashMap<>();
-        mlUser.put("id", user.getId().toString());
-        
-        // Convert skills to skill level mapping (assuming all skills are level 3 for now)
-        // In a real implementation, you might want to store skill levels in the database
-        Map<String, Integer> skillsMap = new HashMap<>();
-        for (Skill skill : user.getAllSkills()) {
-            skillsMap.put(skill.getSkillName(), 3); // Default level 3
-        }
-        mlUser.put("skills", skillsMap);
-        
-        // Set time availability based on user level (1-20 scale)
-        // Higher level users might have more time availability
-        int timeAvailability = Math.min(20, Math.max(1, user.getLevel() * 2));
-        mlUser.put("time_availability", timeAvailability);
-        
-        // Upload single user to ML service
-        List<Map<String, Object>> usersList = new ArrayList<>();
-        usersList.add(mlUser);
-        
-        mlService.uploadUsers(usersList);
-    }
-
-    private Project convertAIToProject(Map<String, Object> aiProjectData, List<String> mainSkills, int timeAvailability, int experienceLevel) {
-        Project project = new Project();
-        
-        // Set basic project information
-        project.setName((String) aiProjectData.get("project_name"));
-        project.setProjectDescription((String) aiProjectData.get("description"));
-        project.setExperienceLevel(experienceLevel);
-        
-        // Set date range based on time availability
-        String dateRange = calculateDateRange(timeAvailability);
-        project.setDateRange(dateRange);
-        
-        // Convert relevant skills to Skill objects
-        @SuppressWarnings("unchecked")
-        List<String> relevantSkills = (List<String>) aiProjectData.get("relevant_skills");
-        List<Skill> skillObjects = new ArrayList<>();
-        
-        // Add main skills
-        for (String skillName : mainSkills) {
-            Skill skill = skillSynthService.getSkillByName(skillName).orElse(null);
-            if (skill == null) {
-                // Create skill if it doesn't exist
-                skill = skillSynthService.createSkill(skillName, "AI-generated skill for project");
-            }
-            skillObjects.add(skill);
-        }
-        
-        // Add relevant skills
-        if (relevantSkills != null) {
-            for (String skillName : relevantSkills) {
-                if (!mainSkills.contains(skillName)) { // Avoid duplicates
-                    Skill skill = skillSynthService.getSkillByName(skillName).orElse(null);
-                    if (skill == null) {
-                        skill = skillSynthService.createSkill(skillName, "AI-recommended skill for project");
-                    }
-                    skillObjects.add(skill);
-                }
-            }
-        }
-        
-        project.setRecommendedSkills(skillObjects);
-        
-        return project;
-    }
-
-    private String calculateDateRange(int timeAvailability) {
-        // Calculate estimated duration based on time availability
-        int weeks = Math.max(1, timeAvailability / 5); // Rough estimate: 5 hours per week
-        return "Estimated " + weeks + " week" + (weeks > 1 ? "s" : "") + " duration";
     }
 }
